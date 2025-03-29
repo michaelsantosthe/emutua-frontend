@@ -1,103 +1,162 @@
-import Image from "next/image";
+"use client"
+
+import type React from "react"
+
+import { useState, useEffect } from "react"
+import ProductList from "@/components/product-list"
+import ProductForm from "@/components/product-form"
+import { ConfirmDialog } from "@/components/confirm-dialog"
+import type { Product } from "@/lib/types"
+import { fetchProducts, deleteProduct } from "@/lib/api"
+import { useToast } from "@/hooks/use-toast"
+import { Button } from "@/components/ui/button"
+import { Input } from "@/components/ui/input"
+import { Loader2, Plus, Search } from "lucide-react"
 
 export default function Home() {
-  return (
-    <div className="grid grid-rows-[20px_1fr_20px] items-center justify-items-center min-h-screen p-8 pb-20 gap-16 sm:p-20 font-[family-name:var(--font-geist-sans)]">
-      <main className="flex flex-col gap-[32px] row-start-2 items-center sm:items-start">
-        <Image
-          className="dark:invert"
-          src="/next.svg"
-          alt="Next.js logo"
-          width={180}
-          height={38}
-          priority
-        />
-        <ol className="list-inside list-decimal text-sm/6 text-center sm:text-left font-[family-name:var(--font-geist-mono)]">
-          <li className="mb-2 tracking-[-.01em]">
-            Get started by editing{" "}
-            <code className="bg-black/[.05] dark:bg-white/[.06] px-1 py-0.5 rounded font-[family-name:var(--font-geist-mono)] font-semibold">
-              app/page.tsx
-            </code>
-            .
-          </li>
-          <li className="tracking-[-.01em]">
-            Save and see your changes instantly.
-          </li>
-        </ol>
+  const [products, setProducts] = useState<Product[]>([])
+  const [loading, setLoading] = useState(true)
+  const [searchTerm, setSearchTerm] = useState("")
+  const [currentPage, setCurrentPage] = useState(1)
+  const [isFormOpen, setIsFormOpen] = useState(false)
+  const [editingProduct, setEditingProduct] = useState<Product | null>(null)
+  const [deleteConfirmOpen, setDeleteConfirmOpen] = useState(false)
+  const [productToDelete, setProductToDelete] = useState<number | null>(null)
+  const { toast } = useToast()
 
-        <div className="flex gap-4 items-center flex-col sm:flex-row">
-          <a
-            className="rounded-full border border-solid border-transparent transition-colors flex items-center justify-center bg-foreground text-background gap-2 hover:bg-[#383838] dark:hover:bg-[#ccc] font-medium text-sm sm:text-base h-10 sm:h-12 px-4 sm:px-5 sm:w-auto"
-            href="https://vercel.com/new?utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-            target="_blank"
-            rel="noopener noreferrer"
-          >
-            <Image
-              className="dark:invert"
-              src="/vercel.svg"
-              alt="Vercel logomark"
-              width={20}
-              height={20}
-            />
-            Deploy now
-          </a>
-          <a
-            className="rounded-full border border-solid border-black/[.08] dark:border-white/[.145] transition-colors flex items-center justify-center hover:bg-[#f2f2f2] dark:hover:bg-[#1a1a1a] hover:border-transparent font-medium text-sm sm:text-base h-10 sm:h-12 px-4 sm:px-5 w-full sm:w-auto md:w-[158px]"
-            href="https://nextjs.org/docs?utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-            target="_blank"
-            rel="noopener noreferrer"
-          >
-            Read our docs
-          </a>
+  const loadProducts = async (page = 1) => {
+    setLoading(true)
+    try {
+      const data = await fetchProducts(page)
+      setProducts(data)
+      setCurrentPage(page)
+    } catch (error: any) {
+      toast({
+        title: "Error",
+        description: error.message || "Failed to load products",
+        variant: "destructive",
+      })
+    } finally {
+      setLoading(false)
+    }
+  }
+
+  useEffect(() => {
+    loadProducts()
+  }, [])
+
+  const handleSearch = (e: React.ChangeEvent<HTMLInputElement>) => {
+    setSearchTerm(e.target.value)
+  }
+
+  const confirmDelete = (id: number) => {
+    setProductToDelete(id)
+    setDeleteConfirmOpen(true)
+  }
+
+  const handleDelete = async () => {
+    if (!productToDelete) return
+
+    try {
+      await deleteProduct(productToDelete)
+      setProducts(products.filter((product) => product.id !== productToDelete))
+      toast({
+        title: "Success",
+        description: "Product deleted successfully",
+      })
+    } catch (error: any) {
+      toast({
+        title: "Error",
+        description: error.message || "Failed to delete product",
+        variant: "destructive",
+      })
+    } finally {
+      setDeleteConfirmOpen(false)
+      setProductToDelete(null)
+    }
+  }
+
+  const handleEdit = (product: Product) => {
+    setEditingProduct(product)
+    setIsFormOpen(true)
+  }
+
+  const handleFormClose = () => {
+    setIsFormOpen(false)
+    setEditingProduct(null)
+  }
+
+  const handleFormSubmit = () => {
+    loadProducts(currentPage)
+    setIsFormOpen(false)
+    setEditingProduct(null)
+  }
+
+  const filteredProducts = products.filter(
+    (product) =>
+      product.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
+      product.description.toLowerCase().includes(searchTerm.toLowerCase()) ||
+      product.category.toLowerCase().includes(searchTerm.toLowerCase()),
+  )
+
+  return (
+    <main className="container mx-auto px-4 py-8">
+      <div className="flex flex-col md:flex-row justify-between items-center mb-8">
+        <h1 className="text-3xl font-bold mb-4 md:mb-0">Product Management</h1>
+        <Button onClick={() => setIsFormOpen(true)} className="w-full md:w-auto">
+          <Plus className="mr-2 h-4 w-4" /> Add New Product
+        </Button>
+      </div>
+
+      <div className="relative mb-6">
+        <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400" />
+        <Input
+          type="text"
+          placeholder="Search products by name, description or category..."
+          value={searchTerm}
+          onChange={handleSearch}
+          className="pl-10"
+        />
+      </div>
+
+      {loading ? (
+        <div className="flex justify-center items-center h-64">
+          <Loader2 className="h-8 w-8 animate-spin text-primary" />
         </div>
-      </main>
-      <footer className="row-start-3 flex gap-[24px] flex-wrap items-center justify-center">
-        <a
-          className="flex items-center gap-2 hover:underline hover:underline-offset-4"
-          href="https://nextjs.org/learn?utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-          target="_blank"
-          rel="noopener noreferrer"
-        >
-          <Image
-            aria-hidden
-            src="/file.svg"
-            alt="File icon"
-            width={16}
-            height={16}
-          />
-          Learn
-        </a>
-        <a
-          className="flex items-center gap-2 hover:underline hover:underline-offset-4"
-          href="https://vercel.com/templates?framework=next.js&utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-          target="_blank"
-          rel="noopener noreferrer"
-        >
-          <Image
-            aria-hidden
-            src="/window.svg"
-            alt="Window icon"
-            width={16}
-            height={16}
-          />
-          Examples
-        </a>
-        <a
-          className="flex items-center gap-2 hover:underline hover:underline-offset-4"
-          href="https://nextjs.org?utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-          target="_blank"
-          rel="noopener noreferrer"
-        >
-          <Image
-            aria-hidden
-            src="/globe.svg"
-            alt="Globe icon"
-            width={16}
-            height={16}
-          />
-          Go to nextjs.org →
-        </a>
-      </footer>
-    </div>
-  );
+      ) : (
+        <>
+          <ProductList products={filteredProducts} onEdit={handleEdit} onDelete={confirmDelete} />
+
+          {filteredProducts.length === 0 && !loading && (
+            <div className="text-center py-10">
+              <p className="text-gray-500">No products found</p>
+            </div>
+          )}
+
+          <div className="flex justify-between mt-6">
+            <Button variant="outline" onClick={() => loadProducts(currentPage - 1)} disabled={currentPage === 1}>
+              Previous
+            </Button>
+            <span className="py-2">Page {currentPage}</span>
+            <Button variant="outline" onClick={() => loadProducts(currentPage + 1)} disabled={products.length < 10}>
+              Next
+            </Button>
+          </div>
+        </>
+      )}
+
+      {isFormOpen && <ProductForm product={editingProduct} onClose={handleFormClose} onSubmit={handleFormSubmit} />}
+
+      <ConfirmDialog
+        isOpen={deleteConfirmOpen}
+        onClose={() => setDeleteConfirmOpen(false)}
+        onConfirm={handleDelete}
+        title="Delete Product"
+        description="Are you sure you want to delete this product? This action cannot be undone."
+        confirmText="Delete"
+        cancelText="Cancel"
+      />
+    </main>
+  )
 }
+
