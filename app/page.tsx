@@ -1,17 +1,15 @@
 "use client"
 
 import type React from "react"
-
 import { useState, useEffect } from "react"
 import ProductList from "@/components/product-list"
 import ProductForm from "@/components/product-form"
 import { ConfirmDialog } from "@/components/confirm-dialog"
 import type { Product } from "@/lib/types"
 import { fetchProducts, deleteProduct } from "@/lib/api"
-import { useToast } from "@/hooks/use-toast"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
-import { Loader2, Plus, Search } from "lucide-react"
+import { Loader2, Plus, Search, AlertCircle, CheckCircle, XCircle } from "lucide-react"
 
 export default function Home() {
   const [products, setProducts] = useState<Product[]>([])
@@ -22,7 +20,10 @@ export default function Home() {
   const [editingProduct, setEditingProduct] = useState<Product | null>(null)
   const [deleteConfirmOpen, setDeleteConfirmOpen] = useState(false)
   const [productToDelete, setProductToDelete] = useState<number | null>(null)
-  const { toast } = useToast()
+  const [notification, setNotification] = useState<{
+    type: "success" | "error"
+    message: string
+  } | null>(null)
 
   const loadProducts = async (page = 1) => {
     setLoading(true)
@@ -31,10 +32,9 @@ export default function Home() {
       setProducts(data)
       setCurrentPage(page)
     } catch (error: any) {
-      toast({
-        title: "Error",
-        description: error.message || "Failed to load products",
-        variant: "destructive",
+      setNotification({
+        type: "error",
+        message: error.message || "Erro ao carregar os produtos",
       })
     } finally {
       setLoading(false)
@@ -44,6 +44,13 @@ export default function Home() {
   useEffect(() => {
     loadProducts()
   }, [])
+
+  useEffect(() => {
+    if (notification) {
+      const timer = setTimeout(() => setNotification(null), 5000)
+      return () => clearTimeout(timer)
+    }
+  }, [notification])
 
   const handleSearch = (e: React.ChangeEvent<HTMLInputElement>) => {
     setSearchTerm(e.target.value)
@@ -60,15 +67,14 @@ export default function Home() {
     try {
       await deleteProduct(productToDelete)
       setProducts(products.filter((product) => product.id !== productToDelete))
-      toast({
-        title: "Success",
-        description: "Product deleted successfully",
+      setNotification({
+        type: "success",
+        message: "Produto deletado com sucesso",
       })
     } catch (error: any) {
-      toast({
-        title: "Error",
-        description: error.message || "Failed to delete product",
-        variant: "destructive",
+      setNotification({
+        type: "error",
+        message: error.message || "Falha ao deletar o produto",
       })
     } finally {
       setDeleteConfirmOpen(false)
@@ -101,10 +107,35 @@ export default function Home() {
 
   return (
     <main className="container mx-auto px-4 py-8">
+      {notification && (
+        <div
+          className={`mb-4 p-4 rounded-md flex items-center justify-between ${
+            notification.type === "success"
+              ? "bg-green-100 text-green-800 dark:bg-green-900 dark:text-green-100"
+              : "bg-red-100 text-red-800 dark:bg-red-900 dark:text-red-100"
+          }`}
+        >
+          <div className="flex items-center">
+            {notification.type === "success" ? (
+              <CheckCircle className="h-5 w-5 mr-2" />
+            ) : (
+              <AlertCircle className="h-5 w-5 mr-2" />
+            )}
+            {notification.message}
+          </div>
+          <button
+            onClick={() => setNotification(null)}
+            className="text-gray-500 hover:text-gray-700 dark:text-gray-400 dark:hover:text-gray-200"
+          >
+            <XCircle className="h-5 w-5" />
+          </button>
+        </div>
+      )}
+
       <div className="flex flex-col md:flex-row justify-between items-center mb-8">
-        <h1 className="text-3xl font-bold mb-4 md:mb-0">Product Management</h1>
+        <h1 className="text-3xl font-bold mb-4 md:mb-0">Projeto Emutua</h1>
         <Button onClick={() => setIsFormOpen(true)} className="w-full md:w-auto">
-          <Plus className="mr-2 h-4 w-4" /> Add New Product
+          <Plus className="mr-2 h-4 w-4" /> Adicionar Novo Produto
         </Button>
       </div>
 
@@ -112,7 +143,7 @@ export default function Home() {
         <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400" />
         <Input
           type="text"
-          placeholder="Search products by name, description or category..."
+          placeholder="Procurar produtos..."
           value={searchTerm}
           onChange={handleSearch}
           className="pl-10"
@@ -129,17 +160,17 @@ export default function Home() {
 
           {filteredProducts.length === 0 && !loading && (
             <div className="text-center py-10">
-              <p className="text-gray-500">No products found</p>
+              <p className="text-gray-500">Nenhum produto encontrado...</p>
             </div>
           )}
 
           <div className="flex justify-between mt-6">
             <Button variant="outline" onClick={() => loadProducts(currentPage - 1)} disabled={currentPage === 1}>
-              Previous
+              Anterior
             </Button>
             <span className="py-2">Page {currentPage}</span>
             <Button variant="outline" onClick={() => loadProducts(currentPage + 1)} disabled={products.length < 10}>
-              Next
+              Próximo
             </Button>
           </div>
         </>
@@ -151,12 +182,11 @@ export default function Home() {
         isOpen={deleteConfirmOpen}
         onClose={() => setDeleteConfirmOpen(false)}
         onConfirm={handleDelete}
-        title="Delete Product"
-        description="Are you sure you want to delete this product? This action cannot be undone."
-        confirmText="Delete"
-        cancelText="Cancel"
+        title="Deletar Produto"
+        description="Você tem certeza que deseja deletar ? Essa ação não pode ser desfeita.."
+        confirmText="Deletar"
+        cancelText="Cancelar"
       />
     </main>
   )
 }
-

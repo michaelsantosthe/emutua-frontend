@@ -1,36 +1,64 @@
-This is a [Next.js](https://nextjs.org) project bootstrapped with [`create-next-app`](https://nextjs.org/docs/app/api-reference/cli/create-next-app).
+# Guia de Uso do Sistema Frontend
 
-## Getting Started
+## Tecnologias Utilizadas
+- **Node.js 20.0.0**
+- **Next.js**
 
-First, run the development server:
+## Configuração Inicial
 
+### 1. Instalar o Node.js na Versão Correta
+Para garantir compatibilidade, recomenda-se o uso do **Node.js 20.0.0**. Caso não tenha essa versão instalada, utilize o **nvm** (Node Version Manager) para gerenciar versões do Node.js.
+
+#### Instalando o NVM (caso não tenha)
+
+**Linux/macOS:**
 ```bash
-npm run dev
-# or
-yarn dev
-# or
-pnpm dev
-# or
-bun dev
+curl -fsSL https://raw.githubusercontent.com/nvm-sh/nvm/v0.39.3/install.sh | bash
+source ~/.bashrc  # ou source ~/.zshrc se estiver usando zsh
 ```
 
-Open [http://localhost:3000](http://localhost:3000) with your browser to see the result.
+**Windows:**
+Baixe o instalador do NVM para Windows: [NVM for Windows](https://github.com/coreybutler/nvm-windows/releases)
 
-You can start editing the page by modifying `app/page.tsx`. The page auto-updates as you edit the file.
+#### Instalando e Configurando o Node.js 20.0.0
+```bash
+nvm install 20.0.0
+nvm use 20.0.0
+```
 
-This project uses [`next/font`](https://nextjs.org/docs/app/building-your-application/optimizing/fonts) to automatically optimize and load [Geist](https://vercel.com/font), a new font family for Vercel.
+### 2. Verificar e Configurar o Arquivo `.env`
+Caso o arquivo `.env` não exista e apenas o `.env.example` esteja presente, renomeie-o para `.env` e confira se a URL da API está corretamente configurada:
 
-## Learn More
+```bash
+cp .env.example .env
+```
 
-To learn more about Next.js, take a look at the following resources:
+Dentro do arquivo `.env`, a variável deve estar assim:
+```env
+NEXT_PUBLIC_API_URL=http://localhost:8000/api
+```
 
-- [Next.js Documentation](https://nextjs.org/docs) - learn about Next.js features and API.
-- [Learn Next.js](https://nextjs.org/learn) - an interactive Next.js tutorial.
+### 3. Instalando Dependências
+Para instalar as dependências do projeto, execute:
+```bash
+npm install
+```
 
-You can check out [the Next.js GitHub repository](https://github.com/vercel/next.js) - your feedback and contributions are welcome!
+### 4. Rodando o Projeto
+Após a instalação, inicie o servidor de desenvolvimento com:
+```bash
+npm run dev
+```
+O frontend estará acessível em **http://localhost:3000**.
 
-## Deploy on Vercel
+### ⚠️ Observação Importante
+Para que o frontend funcione corretamente, o **backend** e o **banco de dados** devem estar rodando. Certifique-se de que o container MySQL e o servidor Laravel estão ligados antes de iniciar o frontend.
 
-The easiest way to deploy your Next.js app is to use the [Vercel Platform](https://vercel.com/new?utm_medium=default-template&filter=next.js&utm_source=create-next-app&utm_campaign=create-next-app-readme) from the creators of Next.js.
+## Testando o Login
+Após rodar o backend e frontend, você pode testar o login com as credenciais criadas pelo seeder do backend:
 
-Check out our [Next.js deployment documentation](https://nextjs.org/docs/app/building-your-application/deploying) for more details.
+- **Email:** `michaelsantos.the@hotmail.com`
+- **Senha:** `12345678`
+
+Agora seu frontend está pronto para uso!
+
